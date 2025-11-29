@@ -7,10 +7,13 @@ interface User {
   email: string;
   firstName: string;
   lastName: string;
+  phone?: string;
   roles: string[];
   campusId?: string;
   collegeId?: string;
   departmentId?: string;
+  campusName?: string;
+  collegeName?: string;
   mfaEnabled: boolean;
 }
 
@@ -33,6 +36,7 @@ interface AuthState {
   logout: () => void;
   refreshToken: () => Promise<void>;
   clearError: () => void;
+  setUser: (user: User | null) => void;
 }
 
 interface RegisterData {
@@ -131,6 +135,8 @@ export const useAuthStore = create<AuthState>()(
       },
 
       clearError: () => set({ error: null }),
+      
+      setUser: (user) => set({ user }),
     }),
     {
       name: 'bbd-auth',

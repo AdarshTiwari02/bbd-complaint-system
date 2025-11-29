@@ -11,11 +11,9 @@ import {
   XCircle,
   Eye,
   Clock,
-  MessageSquare,
   Loader2,
   ChevronLeft,
   ChevronRight,
-  Filter,
   RefreshCw,
 } from 'lucide-react';
 

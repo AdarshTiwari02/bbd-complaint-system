@@ -51,10 +51,13 @@ export class OcrProcessor implements OnModuleInit {
 
     try {
       const aiServiceUrl = this.configService.get('AI_SERVICE_URL', 'http://localhost:3002');
+      const apiKey = this.configService.get('AI_SERVICE_API_KEY');
       
       const response = await axios.post(`${aiServiceUrl}/ai/ocr`, {
         fileUrl,
         mimeType,
+      }, {
+        headers: apiKey ? { 'X-API-Key': apiKey } : {},
       });
 
       const { text } = response.data.data;

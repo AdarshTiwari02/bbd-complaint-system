@@ -82,7 +82,7 @@ export class AiProcessor implements OnModuleInit {
   }
 
   private async processClassification(aiServiceUrl: string, ticketId: string, text: string, title?: string) {
-    const response = await axios.post(`${aiServiceUrl}/ai/classify-ticket`, { text, title });
+    const response = await axios.post(`${aiServiceUrl}/ai/classify-ticket`, { text, title }, this.getAxiosConfig());
     const result = response.data.data;
 
     await this.prisma.aiPrediction.create({
@@ -103,8 +103,13 @@ export class AiProcessor implements OnModuleInit {
     });
   }
 
+  private getAxiosConfig() {
+    const apiKey = this.configService.get('AI_SERVICE_API_KEY');
+    return { headers: apiKey ? { 'X-API-Key': apiKey } : {} };
+  }
+
   private async processPriority(aiServiceUrl: string, ticketId: string, text: string, title?: string) {
-    const response = await axios.post(`${aiServiceUrl}/ai/predict-priority`, { text, title });
+    const response = await axios.post(`${aiServiceUrl}/ai/predict-priority`, { text, title }, this.getAxiosConfig());
     const result = response.data.data;
 
     await this.prisma.aiPrediction.create({
@@ -126,7 +131,7 @@ export class AiProcessor implements OnModuleInit {
   }
 
   private async processModeration(aiServiceUrl: string, ticketId: string, text: string) {
-    const response = await axios.post(`${aiServiceUrl}/ai/moderate`, { text });
+    const response = await axios.post(`${aiServiceUrl}/ai/moderate`, { text }, this.getAxiosConfig());
     const result = response.data.data;
 
     await this.prisma.aiPrediction.create({
@@ -155,7 +160,7 @@ export class AiProcessor implements OnModuleInit {
     const response = await axios.post(`${aiServiceUrl}/ai/summarize-ticket`, {
       ticketTitle: title,
       ticketDescription: text,
-    });
+    }, this.getAxiosConfig());
     const result = response.data.data;
 
     await this.prisma.aiPrediction.create({
@@ -176,7 +181,7 @@ export class AiProcessor implements OnModuleInit {
   }
 
   private async processEmbedding(aiServiceUrl: string, ticketId: string, text: string) {
-    const response = await axios.post(`${aiServiceUrl}/ai/embeddings`, { text });
+    const response = await axios.post(`${aiServiceUrl}/ai/embeddings`, { text }, this.getAxiosConfig());
     const result = response.data.data;
 
     await this.prisma.embedding.upsert({

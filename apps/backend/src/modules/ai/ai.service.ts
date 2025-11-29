@@ -1,6 +1,6 @@
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import axios, { AxiosError } from 'axios';
+import axios, { AxiosError, AxiosInstance } from 'axios';
 import { PrismaService } from '../../prisma/prisma.service';
 import { WinstonLoggerService } from '../../common/logger/winston-logger.service';
 import { TicketCategory } from '@prisma/client';
@@ -63,6 +63,7 @@ export interface SimilarTicket {
 @Injectable()
 export class AiService {
   private readonly aiServiceUrl: string;
+  private readonly axiosInstance: AxiosInstance;
 
   constructor(
     private readonly configService: ConfigService,
@@ -70,11 +71,18 @@ export class AiService {
     private readonly logger: WinstonLoggerService,
   ) {
     this.aiServiceUrl = this.configService.get('AI_SERVICE_URL', 'http://localhost:3002');
+    const apiKey = this.configService.get('AI_SERVICE_API_KEY');
+    
+    // Create axios instance with API key header
+    this.axiosInstance = axios.create({
+      baseURL: this.aiServiceUrl,
+      headers: apiKey ? { 'X-API-Key': apiKey } : {},
+    });
   }
 
   async classifyTicket(text: string, title?: string, college?: string, department?: string): Promise<ClassifyResponse> {
     try {
-      const response = await axios.post(`${this.aiServiceUrl}/ai/classify-ticket`, {
+      const response = await this.axiosInstance.post('/ai/classify-ticket', {
         text,
         title,
         college,
@@ -89,7 +97,7 @@ export class AiService {
 
   async predictPriority(text: string, title?: string, category?: TicketCategory): Promise<PriorityResponse> {
     try {
-      const response = await axios.post(`${this.aiServiceUrl}/ai/predict-priority`, {
+      const response = await this.axiosInstance.post('/ai/predict-priority`, {
         text,
         title,
         category,
@@ -103,7 +111,7 @@ export class AiService {
 
   async moderateContent(text: string): Promise<ModerateResponse> {
     try {
-      const response = await axios.post(`${this.aiServiceUrl}/ai/moderate`, {
+      const response = await this.axiosInstance.post('/ai/moderate`, {
         text,
         checkSpam: true,
         checkProfanity: true,
@@ -118,7 +126,7 @@ export class AiService {
 
   async summarizeTicket(ticketTitle: string, ticketDescription: string, messages?: Array<{ role: string; message: string }>): Promise<SummaryResponse> {
     try {
-      const response = await axios.post(`${this.aiServiceUrl}/ai/summarize-ticket`, {
+      const response = await this.axiosInstance.post('/ai/summarize-ticket`, {
         ticketTitle,
         ticketDescription,
         messages,
@@ -139,7 +147,7 @@ export class AiService {
     tone?: 'formal' | 'friendly' | 'empathetic';
   }): Promise<ReplyDraftResponse> {
     try {
-      const response = await axios.post(`${this.aiServiceUrl}/ai/generate-reply`, params);
+      const response = await this.axiosInstance.post('/ai/generate-reply`, params);
       return response.data.data;
     } catch (error) {
       this.handleError('generateReplyDraft', error);
@@ -149,7 +157,7 @@ export class AiService {
 
   async generateEmbedding(text: string): Promise<EmbeddingResponse> {
     try {
-      const response = await axios.post(`${this.aiServiceUrl}/ai/embeddings`, { text });
+      const response = await this.axiosInstance.post('/ai/embeddings`, { text });
       return response.data.data;
     } catch (error) {
       this.handleError('generateEmbedding', error);
@@ -193,7 +201,7 @@ export class AiService {
       }
 
       // Call AI service to find similar
-      const response = await axios.post(`${this.aiServiceUrl}/ai/similar-tickets`, {
+      const response = await this.axiosInstance.post('/ai/similar-tickets`, {
         ticketId,
         limit,
         threshold,
@@ -208,7 +216,7 @@ export class AiService {
 
   async performOcr(fileUrl: string, mimeType: string): Promise<{ text: string; confidence: number }> {
     try {
-      const response = await axios.post(`${this.aiServiceUrl}/ai/ocr`, {
+      const response = await this.axiosInstance.post('/ai/ocr`, {
         fileUrl,
         mimeType,
       });
@@ -228,7 +236,7 @@ export class AiService {
     createdAt: Date;
   }>) {
     try {
-      const response = await axios.post(`${this.aiServiceUrl}/ai/trends`, {
+      const response = await this.axiosInstance.post('/ai/trends`, {
         tickets,
       });
       return response.data.data;
@@ -240,7 +248,7 @@ export class AiService {
 
   async chatbotIntake(messages: Array<{ role: 'user' | 'assistant'; content: string }>, currentStep?: string) {
     try {
-      const response = await axios.post(`${this.aiServiceUrl}/ai/chatbot-intake`, {
+      const response = await this.axiosInstance.post('/ai/chatbot-intake`, {
         messages,
         currentStep,
       });
@@ -253,7 +261,7 @@ export class AiService {
 
   async enhanceText(text: string, title?: string, type: 'complaint' | 'suggestion' = 'complaint') {
     try {
-      const response = await axios.post(`${this.aiServiceUrl}/ai/enhance-text`, {
+      const response = await this.axiosInstance.post('/ai/enhance-text`, {
         text,
         title,
         type,

@@ -5,6 +5,7 @@ import morgan from 'morgan';
 import dotenv from 'dotenv';
 import { createLogger } from './utils/logger';
 import { errorHandler } from './middleware/error-handler';
+import { apiKeyAuth } from './middleware/auth.middleware';
 import { aiRoutes } from './routes/ai.routes';
 
 // Load environment variables
@@ -21,7 +22,7 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(morgan('combined', { stream: { write: (message) => logger.info(message.trim()) } }));
 
-// Health check
+// Health check (no auth required)
 app.get('/health', (req, res) => {
   res.json({
     status: 'ok',
@@ -29,6 +30,9 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString(),
   });
 });
+
+// API Key Authentication (applies to all routes except /health)
+app.use(apiKeyAuth);
 
 // AI Routes
 app.use('/ai', aiRoutes);

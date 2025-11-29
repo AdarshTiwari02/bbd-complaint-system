@@ -79,6 +79,7 @@ JWT_REFRESH_SECRET=bbd-complaint-super-secret-refresh-key-2024-prod
 JWT_ACCESS_EXPIRES_IN=15m
 JWT_REFRESH_EXPIRES_IN=7d
 AI_SERVICE_URL=<will add after AI service deploy>
+AI_SERVICE_API_KEY=<will add after AI service deploy - use same key as AI service>
 CORS_ORIGINS=<will add after frontend deploy>
 SWAGGER_ENABLED=false
 ```
@@ -104,8 +105,13 @@ SWAGGER_ENABLED=false
 ```
 NODE_ENV=production
 PORT=3002
-GEMINI_API_KEY=AIzaSyDzv8yBiBX7_kdzn9JulyyM0F4btgUGByQ
+GEMINI_API_KEY=your-gemini-api-key-here
+AI_SERVICE_API_KEY=your-ai-service-api-key-here
 ```
+
+**Note**: 
+- Replace `your-gemini-api-key-here` with your actual Google Gemini API key. You can generate one at [Google AI Studio](https://makersuite.google.com/app/apikey).
+- Replace `your-ai-service-api-key-here` with a strong random string (e.g., generate using `openssl rand -hex 32`). This key will be used to authenticate requests from the backend to the AI service.
 
 5. In **Settings**:
    - **Build Command**: `npm install && npm run build`
@@ -113,7 +119,9 @@ GEMINI_API_KEY=AIzaSyDzv8yBiBX7_kdzn9JulyyM0F4btgUGByQ
 
 6. Click **"Deploy"**
 7. Copy the generated URL (e.g., `https://bbd-ai-service-xxx.railway.app`)
-8. Go back to **Backend** service → **Variables** → Update `AI_SERVICE_URL` with this URL
+8. Go back to **Backend** service → **Variables** → Update:
+   - `AI_SERVICE_URL` with the AI service URL
+   - `AI_SERVICE_API_KEY` with the same API key you set in the AI service
 
 ---
 
@@ -169,6 +177,7 @@ JWT_REFRESH_SECRET=your-super-secret-refresh-key-min-32-chars
 JWT_ACCESS_EXPIRES_IN=15m
 JWT_REFRESH_EXPIRES_IN=7d
 AI_SERVICE_URL=https://bbd-ai-service-xxx.railway.app
+AI_SERVICE_API_KEY=your-ai-service-api-key-here
 CORS_ORIGINS=https://bbd-frontend-xxx.railway.app
 SWAGGER_ENABLED=false
 ```
@@ -177,8 +186,13 @@ SWAGGER_ENABLED=false
 ```
 NODE_ENV=production
 PORT=3002
-GEMINI_API_KEY=AIzaSyDzv8yBiBX7_kdzn9JulyyM0F4btgUGByQ
+GEMINI_API_KEY=your-gemini-api-key-here
+AI_SERVICE_API_KEY=your-ai-service-api-key-here
 ```
+
+**Note**: 
+- Replace `your-gemini-api-key-here` with your actual Google Gemini API key. You can generate one at [Google AI Studio](https://makersuite.google.com/app/apikey).
+- Replace `your-ai-service-api-key-here` with a strong random string (e.g., generate using `openssl rand -hex 32`). This key will be used to authenticate requests from the backend to the AI service.
 
 ### Frontend
 ```

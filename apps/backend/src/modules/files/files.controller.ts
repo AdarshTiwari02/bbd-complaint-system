@@ -89,8 +89,9 @@ export class FilesController {
   async deleteAttachment(
     @Param('id') id: string,
     @CurrentUser('sub') userId: string,
+    @CurrentUser('roles') userRoles: string[],
   ) {
-    return this.filesService.deleteAttachment(id, userId);
+    return this.filesService.deleteAttachment(id, userId, userRoles);
   }
 }
 

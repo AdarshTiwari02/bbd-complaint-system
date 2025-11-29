@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { authenticator } from 'otplib';
 import * as QRCode from 'qrcode';
@@ -61,7 +61,7 @@ export class MfaService {
     const recoveryCodes = this.generateRecoveryCodes();
 
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new Error('User not found');
+    if (!user) throw new NotFoundException('User not found');
 
     const qrCodeUrl = await this.generateQrCode(user.email, secret);
 
@@ -80,10 +80,10 @@ export class MfaService {
 
   async verifyAndEnableMfa(userId: string, token: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user || !user.mfaSecret) throw new Error('MFA setup not initiated');
+    if (!user || !user.mfaSecret) throw new BadRequestException('MFA setup not initiated');
 
     const isValid = this.verifyToken(user.mfaSecret, token);
-    if (!isValid) throw new Error('Invalid verification code');
+    if (!isValid) throw new BadRequestException('Invalid verification code');
 
     const recoveryCodes = this.generateRecoveryCodes();
 
@@ -103,10 +103,14 @@ export class MfaService {
 
   async disableMfa(userId: string, token: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user || !user.mfaEnabled) throw new Error('MFA not enabled');
+    if (!user || !user.mfaEnabled) throw new BadRequestException('MFA not enabled');
 
-    const isValid = this.verifyToken(user.mfaSecret!, token);
-    if (!isValid) throw new Error('Invalid verification code');
+    if (!user.mfaSecret) {
+      throw new BadRequestException('MFA secret is not configured');
+    }
+
+    const isValid = this.verifyToken(user.mfaSecret, token);
+    if (!isValid) throw new BadRequestException('Invalid verification code');
 
     await this.prisma.user.update({
       where: { id: userId },

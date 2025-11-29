@@ -10,13 +10,10 @@ import {
   Clock,
   CheckCircle2,
   AlertTriangle,
-  Users,
-  Building2,
   Star,
   Loader2,
   RefreshCw,
   Download,
-  Calendar,
 } from 'lucide-react';
 
 interface OverviewStats {
@@ -29,12 +26,6 @@ interface OverviewStats {
   byPriority: { priority: string; count: number }[];
   byCategory: { category: string; count: number }[];
   byStatus: { status: string; count: number }[];
-}
-
-interface TrendData {
-  period: string;
-  count: number;
-  resolved: number;
 }
 
 export default function Analytics() {
@@ -165,7 +156,6 @@ export default function Analytics() {
 
   const maxPriorityCount = Math.max(...(stats?.byPriority?.map(p => p.count) || [1]));
   const maxCategoryCount = Math.max(...(stats?.byCategory?.map(c => c.count) || [1]));
-  const maxStatusCount = Math.max(...(stats?.byStatus?.map(s => s.count) || [1]));
 
   return (
     <div className="space-y-6">

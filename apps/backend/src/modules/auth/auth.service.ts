@@ -136,7 +136,11 @@ export class AuthService {
         };
       }
 
-      const isMfaValid = this.mfaService.verifyToken(user.mfaSecret!, dto.mfaCode);
+      if (!user.mfaSecret) {
+        throw new BadRequestException('MFA is enabled but secret is not configured. Please contact support.');
+      }
+
+      const isMfaValid = this.mfaService.verifyToken(user.mfaSecret, dto.mfaCode);
       if (!isMfaValid) {
         // Check recovery codes
         const isRecoveryCode = user.recoveryCodes.includes(dto.mfaCode);

@@ -137,11 +137,12 @@ export class FilesService {
     );
   }
 
-  async deleteAttachment(id: string, userId: string) {
+  async deleteAttachment(id: string, userId: string, userRoles: string[] = []) {
     const attachment = await this.prisma.attachment.findUnique({
       where: { id },
       include: {
         ticket: { select: { createdByUserId: true } },
+        message: { select: { senderUserId: true } },
       },
     });
 
@@ -149,9 +150,25 @@ export class FilesService {
       throw new NotFoundException('Attachment not found');
     }
 
-    // Only ticket creator or admin can delete
-    if (attachment.ticket?.createdByUserId !== userId) {
-      throw new BadRequestException('You cannot delete this attachment');
+    // Check if user is admin (SYSTEM_ADMIN or CAMPUS_ADMIN)
+    const isAdmin = userRoles.includes('SYSTEM_ADMIN') || userRoles.includes('CAMPUS_ADMIN');
+
+    // Permission check: only apply if attachment is linked to a ticket or message
+    if (attachment.ticketId) {
+      // If linked to a ticket, only ticket creator or admin can delete
+      if (attachment.ticket?.createdByUserId !== userId && !isAdmin) {
+        throw new BadRequestException('You cannot delete this attachment');
+      }
+    } else if (attachment.messageId) {
+      // If linked to a message, only message sender or admin can delete
+      if (attachment.message?.senderUserId !== userId && !isAdmin) {
+        throw new BadRequestException('You cannot delete this attachment');
+      }
+    } else {
+      // If orphaned (neither ticketId nor messageId), only admins can delete
+      if (!isAdmin) {
+        throw new BadRequestException('Only administrators can delete orphaned attachments');
+      }
     }
 
     // Delete from S3

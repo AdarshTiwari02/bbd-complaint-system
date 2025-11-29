@@ -60,7 +60,7 @@ export default function TicketDetail() {
   const [isLoading, setIsLoading] = useState(true);
   const [newMessage, setNewMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
-  const [showRating, setShowRating] = useState(false);
+  const [, setShowRating] = useState(false);
   const [rating, setRating] = useState(0);
   const [ratingComment, setRatingComment] = useState('');
   const [showEscalateModal, setShowEscalateModal] = useState(false);
