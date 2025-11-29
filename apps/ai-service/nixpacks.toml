@@ -1,0 +1,14 @@
+[phases.setup]
+nixPkgs = ["nodejs_20", "pnpm"]
+
+[phases.install]
+cmds = [
+  "cd ../.. && pnpm install --frozen-lockfile"
+]
+
+[phases.build]
+cmds = ["cd apps/ai-service && pnpm run build"]
+
+[start]
+cmd = "cd apps/ai-service && node dist/index.js"
+

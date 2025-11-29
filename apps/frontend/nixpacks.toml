@@ -1,0 +1,14 @@
+[phases.setup]
+nixPkgs = ["nodejs_20", "pnpm"]
+
+[phases.install]
+cmds = [
+  "cd ../.. && pnpm install --frozen-lockfile"
+]
+
+[phases.build]
+cmds = ["cd apps/frontend && pnpm run build"]
+
+[start]
+cmd = "cd apps/frontend && npx serve dist -s -l 3000"
+
