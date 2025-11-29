@@ -1,11 +1,12 @@
 import { Router } from 'express';
+import type { Router as ExpressRouter } from 'express';
 import { GeminiService } from '../services/gemini.service';
 import { OcrService } from '../services/ocr.service';
 import { EmbeddingService } from '../services/embedding.service';
 import { createError } from '../middleware/error-handler';
 import { logger } from '../utils/logger';
 
-const router = Router();
+const router = Router() as ExpressRouter;
 const geminiService = new GeminiService();
 const ocrService = new OcrService();
 const embeddingService = new EmbeddingService();

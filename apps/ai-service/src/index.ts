@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { type Express } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
@@ -11,7 +11,7 @@ import { aiRoutes } from './routes/ai.routes';
 dotenv.config({ path: '../../.env' });
 dotenv.config();
 
-const app = express();
+const app: Express = express();
 const logger = createLogger();
 const PORT = process.env.AI_SERVICE_PORT || 3002;
 
