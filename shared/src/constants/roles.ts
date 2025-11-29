@@ -72,12 +72,7 @@ export const ROLE_PERMISSIONS = {
   SYSTEM_ADMIN: ['admin:full-access', 'system:config'],
 } as const;
 
-export const SLA_HOURS = {
-  URGENT: 4,
-  HIGH: 24,
-  MEDIUM: 48,
-  LOW: 72,
-} as const;
+// SLA_HOURS moved to types/ticket.types.ts to match TicketPriority enum
 
 export const ESCALATION_SLA_HOURS = {
   URGENT: 2,

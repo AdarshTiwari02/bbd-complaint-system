@@ -2,8 +2,8 @@
 // Shared Utility Functions
 // ===========================================
 
-import { TICKET_NUMBER_PREFIX, SLA_CONFIG } from '../constants';
-import { TicketPriority } from '../types/ticket.types';
+import { TICKET_NUMBER_PREFIX } from '../constants';
+import { TicketPriority, SLA_HOURS } from '../types/ticket.types';
 
 /**
  * Generate a unique ticket number
@@ -20,7 +20,7 @@ export function generateTicketNumber(): string {
  * Calculate SLA due date based on priority
  */
 export function calculateSlaDueDate(priority: TicketPriority, fromDate?: Date): Date {
-  const hours = SLA_CONFIG[priority];
+  const hours = SLA_HOURS[priority];
   const date = fromDate ? new Date(fromDate) : new Date();
   date.setHours(date.getHours() + hours);
   return date;
