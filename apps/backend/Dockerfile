@@ -1,26 +1,39 @@
 # Build stage
-FROM node:20-alpine AS builder
+FROM node:20-alpine AS base
+
+# Install pnpm
+RUN corepack enable && corepack prepare pnpm@latest --activate
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# Copy root package files for monorepo
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY prisma ./prisma/
+COPY shared ./shared/
+
+# Copy backend package files
+COPY apps/backend/package.json ./apps/backend/
 
 # Install dependencies
-RUN npm ci
+RUN pnpm install --frozen-lockfile
 
-# Copy source code
-COPY . .
+# Build stage
+FROM base AS builder
+
+# Copy backend source
+COPY apps/backend ./apps/backend
 
 # Generate Prisma client
-RUN npx prisma generate
+RUN pnpm --filter @bbd/backend prisma generate --schema=../../prisma/schema.prisma
 
-# Build the application
-RUN npm run build
+# Build backend
+RUN pnpm --filter @bbd/backend build
 
 # Production stage
 FROM node:20-alpine AS production
+
+# Install pnpm
+RUN corepack enable && corepack prepare pnpm@latest --activate
 
 WORKDIR /app
 
@@ -29,10 +42,11 @@ RUN addgroup -g 1001 -S nodejs && \
     adduser -S nestjs -u 1001
 
 # Copy necessary files from builder
-COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/apps/backend/dist ./dist
+COPY --from=builder /app/apps/backend/package.json ./package.json
 COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/shared ./shared
 
 # Set ownership
 RUN chown -R nestjs:nodejs /app
@@ -48,4 +62,3 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 
 # Start command
 CMD ["node", "dist/main.js"]
-

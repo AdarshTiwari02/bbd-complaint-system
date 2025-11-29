@@ -34,6 +34,7 @@
     "@prisma/client": "^5.8.0",
     "@aws-sdk/client-s3": "^3.490.0",
     "@aws-sdk/s3-request-presigner": "^3.490.0",
+    "@supabase/supabase-js": "^2.39.0",
     "axios": "^1.6.5",
     "bcryptjs": "^2.4.3",
     "bullmq": "^5.1.1",

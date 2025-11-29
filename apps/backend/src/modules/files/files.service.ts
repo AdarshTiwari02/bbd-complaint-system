@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { Queue } from 'bullmq';
 import { PrismaService } from '../../prisma/prisma.service';
-import { S3Service } from './s3.service';
+import { IStorageService } from './storage.interface';
 import { WinstonLoggerService } from '../../common/logger/winston-logger.service';
 import { QUEUE_OCR } from '../../queue/queue.module';
 
@@ -28,7 +28,7 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 export class FilesService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly s3Service: S3Service,
+    @Inject('STORAGE_SERVICE') private readonly storageService: IStorageService,
     private readonly logger: WinstonLoggerService,
     @Inject(QUEUE_OCR) private readonly ocrQueue: Queue,
   ) {}
@@ -51,8 +51,8 @@ export class FilesService {
       );
     }
 
-    // Upload to S3
-    const { key, url } = await this.s3Service.uploadFile(
+    // Upload to storage (S3 or Supabase)
+    const { key, url } = await this.storageService.uploadFile(
       file.buffer,
       file.originalname,
       file.mimetype,
@@ -114,7 +114,7 @@ export class FilesService {
     }
 
     // Refresh signed URL if needed
-    const url = await this.s3Service.getSignedUrl(attachment.s3Key);
+    const url = await this.storageService.getSignedUrl(attachment.s3Key);
 
     return {
       ...attachment,
@@ -132,7 +132,7 @@ export class FilesService {
     return Promise.all(
       attachments.map(async (attachment) => ({
         ...attachment,
-        url: await this.s3Service.getSignedUrl(attachment.s3Key),
+        url: await this.storageService.getSignedUrl(attachment.s3Key),
       })),
     );
   }
@@ -171,8 +171,8 @@ export class FilesService {
       }
     }
 
-    // Delete from S3
-    await this.s3Service.deleteFile(attachment.s3Key);
+    // Delete from storage
+    await this.storageService.deleteFile(attachment.s3Key);
 
     // Delete from database
     await this.prisma.attachment.delete({ where: { id } });

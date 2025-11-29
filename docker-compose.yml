@@ -8,7 +8,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: bbd_user
-      POSTGRES_PASSWORD: bbd_password
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-bbd_password}
       POSTGRES_DB: bbd_complaints
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -43,8 +43,8 @@ services:
     restart: unless-stopped
     command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
     volumes:
       - minio_data:/data
     ports:
@@ -59,22 +59,25 @@ services:
   # Backend API
   backend:
     build:
-      context: ./apps/backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: apps/backend/Dockerfile
     container_name: bbd-backend
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql://bbd_user:bbd_password@postgres:5432/bbd_complaints?schema=public
+      DATABASE_URL: postgresql://bbd_user:${POSTGRES_PASSWORD:-bbd_password}@postgres:5432/bbd_complaints?schema=public
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-your-super-secret-access-key}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-your-super-secret-refresh-key}
       REDIS_URL: redis://redis:6379
       AI_SERVICE_URL: http://ai-service:3002
+      AI_SERVICE_API_KEY: ${AI_SERVICE_API_KEY:-your-ai-service-api-key}
+      STORAGE_TYPE: ${STORAGE_TYPE:-s3}
       S3_ENDPOINT: http://minio:9000
-      S3_ACCESS_KEY_ID: minioadmin
-      S3_SECRET_ACCESS_KEY: minioadmin
+      S3_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-minioadmin}
+      S3_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
       S3_BUCKET_NAME: bbd-complaints
       BACKEND_PORT: 3001
       NODE_ENV: production
+      CORS_ORIGINS: ${FRONTEND_URL:-http://localhost:3000}
     ports:
       - "3001:3001"
     depends_on:
@@ -85,17 +88,18 @@ services:
       minio:
         condition: service_healthy
     volumes:
-      - ./prisma:/app/prisma
+      - ./prisma:/app/prisma:ro
 
   # AI Microservice
   ai-service:
     build:
-      context: ./apps/ai-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: apps/ai-service/Dockerfile
     container_name: bbd-ai-service
     restart: unless-stopped
     environment:
       GEMINI_API_KEY: ${GEMINI_API_KEY}
+      AI_SERVICE_API_KEY: ${AI_SERVICE_API_KEY:-your-ai-service-api-key}
       AI_SERVICE_PORT: 3002
       NODE_ENV: production
     ports:
@@ -104,14 +108,16 @@ services:
   # Frontend
   frontend:
     build:
-      context: ./apps/frontend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: apps/frontend/Dockerfile
       args:
         VITE_API_URL: /api/v1
     container_name: bbd-frontend
     restart: unless-stopped
     ports:
       - "3000:80"
+    depends_on:
+      - backend
 
   # Nginx Reverse Proxy
   nginx:

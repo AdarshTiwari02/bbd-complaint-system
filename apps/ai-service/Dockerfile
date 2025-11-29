@@ -1,22 +1,35 @@
 # Build stage
-FROM node:20-alpine AS builder
+FROM node:20-alpine AS base
+
+# Install pnpm
+RUN corepack enable && corepack prepare pnpm@latest --activate
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# Copy root package files for monorepo
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY shared ./shared/
+
+# Copy AI service package files
+COPY apps/ai-service/package.json ./apps/ai-service/
 
 # Install dependencies
-RUN npm ci
+RUN pnpm install --frozen-lockfile
 
-# Copy source code
-COPY . .
+# Build stage
+FROM base AS builder
 
-# Build the application
-RUN npm run build
+# Copy AI service source
+COPY apps/ai-service ./apps/ai-service
+
+# Build AI service
+RUN pnpm --filter @bbd/ai-service build
 
 # Production stage
 FROM node:20-alpine AS production
+
+# Install pnpm
+RUN corepack enable && corepack prepare pnpm@latest --activate
 
 WORKDIR /app
 
@@ -25,9 +38,9 @@ RUN addgroup -g 1001 -S nodejs && \
     adduser -S aiservice -u 1001
 
 # Copy necessary files from builder
-COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/apps/ai-service/dist ./dist
+COPY --from=builder /app/apps/ai-service/package.json ./package.json
 
 # Set ownership
 RUN chown -R aiservice:nodejs /app
@@ -43,4 +56,3 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 
 # Start command
 CMD ["node", "dist/index.js"]
-
