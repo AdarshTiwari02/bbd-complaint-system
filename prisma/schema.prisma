@@ -1,0 +1,622 @@
+// ===========================================
+// BBD Complaint & Suggestion System
+// Prisma Schema
+// ===========================================
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [pgvector(map: "vector")]
+}
+
+// ===========================================
+// ENUMS
+// ===========================================
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  PENDING_VERIFICATION
+}
+
+enum RoleName {
+  STUDENT
+  STAFF
+  FACULTY
+  CLASS_COORDINATOR
+  PROCTOR
+  HOD
+  DEAN
+  DIRECTOR
+  DIRECTOR_FINANCE
+  CAMPUS_ADMIN
+  TRANSPORT_INCHARGE
+  HOSTEL_WARDEN
+  MODERATOR
+  SYSTEM_ADMIN
+}
+
+enum TicketCategory {
+  TRANSPORT
+  HOSTEL
+  ACADEMIC
+  ADMINISTRATIVE
+  OTHER
+}
+
+enum TicketType {
+  COMPLAINT
+  SUGGESTION
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  PENDING_INFO
+  ESCALATED
+  RESOLVED
+  CLOSED
+  REJECTED
+}
+
+enum RoutingLevel {
+  CLASS_COORDINATOR
+  HOD
+  DEAN
+  DIRECTOR
+  DIRECTOR_FINANCE
+  CAMPUS_ADMIN
+  TRANSPORT_INCHARGE
+  HOSTEL_WARDEN
+  SYSTEM_ADMIN
+}
+
+enum AiPredictionType {
+  CATEGORIZATION
+  PRIORITY
+  TOXICITY
+  SUMMARY
+  TREND
+  DUPLICATE
+  REPLY_DRAFT
+}
+
+enum ToxicitySeverity {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum ToxicityAction {
+  ALLOW
+  FLAG
+  BLOCK
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  LOGIN
+  LOGOUT
+  ESCALATE
+  RESOLVE
+  ASSIGN
+  RATE
+  EXPORT
+  MFA_ENABLE
+  MFA_DISABLE
+  PASSWORD_CHANGE
+  ROLE_CHANGE
+}
+
+// ===========================================
+// ORGANIZATION MODELS
+// ===========================================
+
+model Campus {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  code      String    @unique
+  address   String?
+  city      String?
+  state     String?
+  phone     String?
+  email     String?
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  colleges  College[]
+  users     User[]
+
+  @@index([code])
+  @@map("campuses")
+}
+
+model College {
+  id        String    @id @default(cuid())
+  name      String
+  code      String    @unique
+  campusId  String
+  directorId String?  @unique
+  phone     String?
+  email     String?
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  campus      Campus       @relation(fields: [campusId], references: [id], onDelete: Cascade)
+  director    User?        @relation("CollegeDirector", fields: [directorId], references: [id])
+  departments Department[]
+  users       User[]       @relation("UserCollege")
+  tickets     Ticket[]
+
+  @@index([campusId])
+  @@index([code])
+  @@map("colleges")
+}
+
+model Department {
+  id         String    @id @default(cuid())
+  name       String
+  code       String
+  collegeId  String
+  hodUserId  String?   @unique
+  phone      String?
+  email      String?
+  isActive   Boolean   @default(true)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  college    College   @relation(fields: [collegeId], references: [id], onDelete: Cascade)
+  hod        User?     @relation("DepartmentHOD", fields: [hodUserId], references: [id])
+  users      User[]    @relation("UserDepartment")
+  tickets    Ticket[]
+
+  @@unique([collegeId, code])
+  @@index([collegeId])
+  @@map("departments")
+}
+
+// ===========================================
+// USER & AUTH MODELS
+// ===========================================
+
+model User {
+  id              String       @id @default(cuid())
+  email           String       @unique
+  passwordHash    String
+  firstName       String
+  lastName        String
+  phone           String?
+  studentId       String?      @unique
+  employeeId      String?      @unique
+  avatarUrl       String?
+  campusId        String?
+  collegeId       String?
+  departmentId    String?
+  status          UserStatus   @default(PENDING_VERIFICATION)
+  mfaEnabled      Boolean      @default(false)
+  mfaSecret       String?
+  recoveryCodes   String[]     @default([])
+  emailVerified   Boolean      @default(false)
+  emailVerifyToken String?
+  passwordResetToken String?
+  passwordResetExpires DateTime?
+  lastLoginAt     DateTime?
+  lastLoginIp     String?
+  loginAttempts   Int          @default(0)
+  lockedUntil     DateTime?
+  
+  // Verification by superior
+  isVerified      Boolean      @default(false)
+  verifiedById    String?
+  verifiedAt      DateTime?
+  verificationNote String?
+  rejectionReason String?
+  
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  deletedAt       DateTime?
+
+  campus          Campus?      @relation(fields: [campusId], references: [id])
+  college         College?     @relation("UserCollege", fields: [collegeId], references: [id])
+  department      Department?  @relation("UserDepartment", fields: [departmentId], references: [id])
+  verifiedBy      User?        @relation("UserVerifier", fields: [verifiedById], references: [id])
+  verifiedUsers   User[]       @relation("UserVerifier")
+  roles           UserRole[]
+  refreshTokens   RefreshToken[]
+  
+  // Relations for leadership positions
+  directorOf      College?     @relation("CollegeDirector")
+  hodOf           Department?  @relation("DepartmentHOD")
+  
+  // Ticket relations
+  createdTickets  Ticket[]     @relation("TicketCreator")
+  assignedTickets Ticket[]     @relation("TicketAssignee")
+  messages        TicketMessage[]
+  escalationsFrom Escalation[] @relation("EscalationFrom")
+  escalationsTo   Escalation[] @relation("EscalationTo")
+  
+  // AI & Moderation
+  aiFeedbacks     AiFeedback[]
+  
+  // Audit
+  auditLogs       AuditLog[]
+  
+  // Suggestions
+  suggestionVotes SuggestionVote[]
+
+  @@index([email])
+  @@index([campusId])
+  @@index([collegeId])
+  @@index([departmentId])
+  @@index([status])
+  @@index([isVerified])
+  @@map("users")
+}
+
+model Role {
+  id          String     @id @default(cuid())
+  name        RoleName   @unique
+  displayName String
+  description String?
+  permissions String[]   @default([])
+  isSystem    Boolean    @default(false)
+  canVerify   String[]   @default([])  // Roles this role can verify
+  verifiedBy  String[]   @default([])  // Roles that can verify this role
+  canCreateRoles Boolean @default(false)
+  createdById String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  users       UserRole[]
+
+  @@map("roles")
+}
+
+model UserRole {
+  id        String   @id @default(cuid())
+  userId    String
+  roleId    String
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+  @@index([userId])
+  @@index([roleId])
+  @@map("user_roles")
+}
+
+model RefreshToken {
+  id          String   @id @default(cuid())
+  userId      String
+  token       String   @unique
+  expiresAt   DateTime
+  isRevoked   Boolean  @default(false)
+  userAgent   String?
+  ipAddress   String?
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@map("refresh_tokens")
+}
+
+// ===========================================
+// TICKET MODELS
+// ===========================================
+
+model Ticket {
+  id                  String         @id @default(cuid())
+  ticketNumber        String         @unique
+  title               String
+  description         String
+  createdByUserId     String
+  isAnonymous         Boolean        @default(false)
+  anonymousIdentifier String?
+  category            TicketCategory
+  type                TicketType
+  priority            TicketPriority @default(MEDIUM)
+  status              TicketStatus   @default(OPEN)
+  collegeId           String?
+  departmentId        String?
+  assignedToUserId    String?
+  currentLevel        RoutingLevel?
+  slaDueAt            DateTime?
+  firstResponseAt     DateTime?
+  resolvedAt          DateTime?
+  closedAt            DateTime?
+  
+  // Rating
+  rating              Int?
+  ratingComment       String?
+  ratedAt             DateTime?
+  
+  // AI Fields
+  aiCategoryConfidence Float?
+  aiPriorityConfidence Float?
+  summary             String?
+  isToxic             Boolean        @default(false)
+  toxicitySeverity    ToxicitySeverity?
+  toxicityAction      ToxicityAction?
+  
+  // Metadata
+  tags                String[]       @default([])
+  metadata            Json?
+  
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+
+  createdBy           User           @relation("TicketCreator", fields: [createdByUserId], references: [id])
+  assignedTo          User?          @relation("TicketAssignee", fields: [assignedToUserId], references: [id])
+  college             College?       @relation(fields: [collegeId], references: [id])
+  department          Department?    @relation(fields: [departmentId], references: [id])
+  
+  messages            TicketMessage[]
+  attachments         Attachment[]
+  escalations         Escalation[]
+  aiPredictions       AiPrediction[]
+  embedding           Embedding?
+  suggestion          Suggestion?
+
+  @@index([ticketNumber])
+  @@index([status])
+  @@index([category])
+  @@index([priority])
+  @@index([collegeId])
+  @@index([departmentId])
+  @@index([assignedToUserId])
+  @@index([createdByUserId])
+  @@index([createdAt])
+  @@index([slaDueAt])
+  @@map("tickets")
+}
+
+model TicketMessage {
+  id           String    @id @default(cuid())
+  ticketId     String
+  senderUserId String?
+  message      String
+  isInternal   Boolean   @default(false)
+  isSystem     Boolean   @default(false)
+  isAiGenerated Boolean  @default(false)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  ticket       Ticket    @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  sender       User?     @relation(fields: [senderUserId], references: [id])
+  attachments  Attachment[]
+
+  @@index([ticketId])
+  @@index([senderUserId])
+  @@index([createdAt])
+  @@map("ticket_messages")
+}
+
+model Attachment {
+  id           String    @id @default(cuid())
+  ticketId     String?
+  messageId    String?
+  fileName     String
+  originalName String
+  mimeType     String
+  size         Int
+  s3Key        String
+  url          String
+  ocrText      String?
+  ocrProcessed Boolean   @default(false)
+  isScanned    Boolean   @default(false)
+  scanResult   Json?
+  createdAt    DateTime  @default(now())
+
+  ticket       Ticket?        @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  message      TicketMessage? @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId])
+  @@index([messageId])
+  @@index([s3Key])
+  @@map("attachments")
+}
+
+model Escalation {
+  id          String       @id @default(cuid())
+  ticketId    String
+  fromRole    RoutingLevel
+  toRole      RoutingLevel
+  fromUserId  String?
+  toUserId    String?
+  reason      String?
+  autoEscalated Boolean    @default(false)
+  createdAt   DateTime     @default(now())
+
+  ticket      Ticket       @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  fromUser    User?        @relation("EscalationFrom", fields: [fromUserId], references: [id])
+  toUser      User?        @relation("EscalationTo", fields: [toUserId], references: [id])
+
+  @@index([ticketId])
+  @@index([fromUserId])
+  @@index([toUserId])
+  @@index([createdAt])
+  @@map("escalations")
+}
+
+// ===========================================
+// AI MODELS
+// ===========================================
+
+model AiPrediction {
+  id           String           @id @default(cuid())
+  ticketId     String
+  type         AiPredictionType
+  rawResponse  String?
+  parsedJson   Json?
+  modelName    String           @default("gemini-1.5-flash")
+  confidence   Float?
+  processingMs Int?
+  createdAt    DateTime         @default(now())
+
+  ticket       Ticket           @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  feedbacks    AiFeedback[]
+
+  @@index([ticketId])
+  @@index([type])
+  @@index([createdAt])
+  @@map("ai_predictions")
+}
+
+model AiFeedback {
+  id             String       @id @default(cuid())
+  aiPredictionId String
+  userId         String
+  isUseful       Boolean
+  comment        String?
+  createdAt      DateTime     @default(now())
+
+  prediction     AiPrediction @relation(fields: [aiPredictionId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id])
+
+  @@unique([aiPredictionId, userId])
+  @@index([aiPredictionId])
+  @@index([userId])
+  @@map("ai_feedbacks")
+}
+
+model Embedding {
+  id         String                 @id @default(cuid())
+  ticketId   String                 @unique
+  modelName  String                 @default("text-embedding-004")
+  vector     Unsupported("vector(768)")?
+  vectorJson Float[]                @default([])
+  createdAt  DateTime               @default(now())
+  updatedAt  DateTime               @updatedAt
+
+  ticket     Ticket                 @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId])
+  @@map("embeddings")
+}
+
+// ===========================================
+// SUGGESTION MODELS
+// ===========================================
+
+model Suggestion {
+  id                   String    @id @default(cuid())
+  ticketId             String    @unique
+  isPublic             Boolean   @default(false)
+  isApprovedByModerator Boolean  @default(false)
+  moderatorId          String?
+  moderatedAt          DateTime?
+  moderatorNote        String?
+  upvotes              Int       @default(0)
+  downvotes            Int       @default(0)
+  featuredAt           DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  ticket               Ticket    @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  votes                SuggestionVote[]
+
+  @@index([isPublic, isApprovedByModerator])
+  @@index([upvotes])
+  @@map("suggestions")
+}
+
+model SuggestionVote {
+  id           String     @id @default(cuid())
+  suggestionId String
+  userId       String
+  isUpvote     Boolean
+  createdAt    DateTime   @default(now())
+
+  suggestion   Suggestion @relation(fields: [suggestionId], references: [id], onDelete: Cascade)
+  user         User       @relation(fields: [userId], references: [id])
+
+  @@unique([suggestionId, userId])
+  @@index([suggestionId])
+  @@index([userId])
+  @@map("suggestion_votes")
+}
+
+// ===========================================
+// AUDIT & LOGGING
+// ===========================================
+
+model AuditLog {
+  id          String      @id @default(cuid())
+  userId      String?
+  action      AuditAction
+  entityType  String
+  entityId    String?
+  ipAddress   String?
+  userAgent   String?
+  oldValues   Json?
+  newValues   Json?
+  metadata    Json?
+  createdAt   DateTime    @default(now())
+
+  user        User?       @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([entityType, entityId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// ===========================================
+// NOTIFICATION MODELS (Optional)
+// ===========================================
+
+model Notification {
+  id          String    @id @default(cuid())
+  userId      String
+  title       String
+  message     String
+  type        String
+  entityType  String?
+  entityId    String?
+  isRead      Boolean   @default(false)
+  readAt      DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([userId, isRead])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+// ===========================================
+// SYSTEM CONFIGURATION
+// ===========================================
+
+model SystemConfig {
+  id          String    @id @default(cuid())
+  key         String    @unique
+  value       Json
+  description String?
+  isPublic    Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("system_configs")
+}
+
