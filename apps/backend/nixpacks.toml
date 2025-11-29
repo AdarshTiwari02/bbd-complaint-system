@@ -1,16 +1,15 @@
 [phases.setup]
-nixPkgs = ["nodejs_20", "npm"]
+nixPkgs = ["nodejs_20", "pnpm"]
 
 [phases.install]
 cmds = [
-  "cd ../.. && npm install",
-  "cd apps/backend && npm install",
-  "npx prisma generate --schema=../../prisma/schema.prisma"
+  "cd ../.. && pnpm install --frozen-lockfile",
+  "cd apps/backend && npx prisma generate --schema=../../prisma/schema.prisma"
 ]
 
 [phases.build]
-cmds = ["npm run build"]
+cmds = ["cd apps/backend && pnpm run build"]
 
 [start]
-cmd = "npx prisma migrate deploy --schema=../../prisma/schema.prisma && node dist/main.js"
+cmd = "cd apps/backend && npx prisma migrate deploy --schema=../../prisma/schema.prisma && node dist/main.js"
 
