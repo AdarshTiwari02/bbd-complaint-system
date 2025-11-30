@@ -8,13 +8,17 @@ WORKDIR /app
 
 # Copy root package files for monorepo
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY tsconfig.base.json ./
 COPY shared ./shared/
 
 # Copy AI service package files
 COPY apps/ai-service/package.json ./apps/ai-service/
 
-# Install dependencies
+# Install dependencies (including all workspace dependencies)
 RUN pnpm install --frozen-lockfile
+
+# Build shared package first (needed by other packages)
+RUN pnpm --filter @bbd/shared build
 
 # Build stage
 FROM base AS builder
@@ -22,9 +26,12 @@ FROM base AS builder
 # Copy AI service source
 COPY apps/ai-service ./apps/ai-service
 
-# Build AI service (from root)
+# Build AI service
 WORKDIR /app
-RUN pnpm --filter @bbd/ai-service build
+ENV PATH="/app/node_modules/.bin:$PATH"
+# Compile TypeScript with skipLibCheck to avoid dependency resolution issues in Docker
+RUN cd apps/ai-service && ../../node_modules/.bin/tsc --skipLibCheck --noEmit false || true
+RUN cd apps/ai-service && ../../node_modules/.bin/tsc --skipLibCheck
 
 # Production stage
 FROM node:20-alpine AS production

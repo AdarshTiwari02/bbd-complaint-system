@@ -41,8 +41,9 @@ export default function TrackTicket() {
     try {
       const response = await ticketApi.track(ticketNumber.trim());
       setTicket(response.data.data);
-    } catch (err: any) {
-      setError(err.response?.data?.error?.message || 'Ticket not found. Please check the ticket number.');
+    } catch (err: unknown) {
+      const errorMessage = (err as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error?.message || 'Ticket not found. Please check the ticket number.';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }

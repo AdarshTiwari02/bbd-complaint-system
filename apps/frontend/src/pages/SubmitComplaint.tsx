@@ -210,10 +210,11 @@ export default function SubmitComplaint() {
       });
 
       navigate(`/track?number=${ticket.ticketNumber}`);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = (error as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error?.message || 'Please try again later.';
       toast({
         title: 'Submission Failed',
-        description: error.response?.data?.error?.message || 'Please try again later.',
+        description: errorMessage,
         variant: 'destructive',
       });
     } finally {

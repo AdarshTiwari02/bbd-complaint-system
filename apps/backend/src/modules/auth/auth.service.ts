@@ -113,7 +113,6 @@ export class AuthService {
     }
 
     // Check if account is verified by a superior (skip in development)
-    // @ts-expect-error - isVerified field exists in User model
     if (!user.isVerified && !isDev) {
       throw new ForbiddenException('Your account is pending verification by an administrator');
     }

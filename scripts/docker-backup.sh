@@ -17,3 +17,5 @@ docker-compose exec -T postgres pg_dump -U bbd_user bbd_complaints > "$BACKUP_FI
 echo "✅ Backup created: $BACKUP_FILE"
 echo "📊 Backup size: $(du -h "$BACKUP_FILE" | cut -f1)"
 
+
+

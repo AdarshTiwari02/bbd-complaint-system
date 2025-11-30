@@ -8,14 +8,18 @@ WORKDIR /app
 
 # Copy root package files for monorepo
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY tsconfig.base.json ./
 COPY prisma ./prisma/
 COPY shared ./shared/
 
 # Copy backend package files
 COPY apps/backend/package.json ./apps/backend/
 
-# Install dependencies
+# Install dependencies (including all workspace dependencies)
 RUN pnpm install --frozen-lockfile
+
+# Build shared package first (needed by other packages)
+RUN pnpm --filter @bbd/shared build
 
 # Build stage
 FROM base AS builder
@@ -25,10 +29,11 @@ COPY apps/backend ./apps/backend
 
 # Generate Prisma client (from root)
 WORKDIR /app
-RUN pnpm --filter @bbd/backend exec prisma generate --schema=../../prisma/schema.prisma
+ENV PATH="/app/node_modules/.bin:$PATH"
+RUN npx prisma generate --schema=prisma/schema.prisma
 
-# Build backend (from root)
-RUN pnpm --filter @bbd/backend build
+# Build backend (using pnpm filter from root)
+RUN pnpm --filter @bbd/backend run build
 
 # Production stage
 FROM node:20-alpine AS production

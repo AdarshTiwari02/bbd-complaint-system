@@ -20,8 +20,9 @@ export default function ForgotPassword() {
     try {
       await authApi.forgotPassword(email);
       setIsSubmitted(true);
-    } catch (err: any) {
-      setError(err.response?.data?.error?.message || 'Failed to send reset email');
+    } catch (err: unknown) {
+      const errorMessage = (err as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error?.message || 'Failed to send reset email';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }

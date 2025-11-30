@@ -39,6 +39,8 @@ bbd-complaint-system/
 - **Trend Analysis**: Identify recurring issues
 - **OCR**: Extract text from uploaded images/PDFs
 - **Chatbot Intake**: Conversational ticket submission
+- **AI Admin Assistant**: Chatbot for admins to get solution suggestions
+- **Text Enhancement**: Improve language quality of complaints/suggestions and replies
 
 ### Security
 - **JWT Auth**: Access + Refresh tokens
@@ -52,23 +54,36 @@ bbd-complaint-system/
 
 | Role | Permissions |
 |------|-------------|
-| **Student/Staff** | Submit tickets, track status, rate resolutions |
-| **HOD** | Handle department tickets, escalate to Director |
-| **Director** | Handle college tickets, reassign between HODs |
-| **Transport Incharge** | Handle transport complaints |
-| **Hostel Warden** | Handle hostel complaints |
+| **Student** | Submit tickets, track status, rate resolutions |
+| **Staff/Faculty** | Submit tickets, handle assigned tickets (if authorized) |
+| **Class Coordinator** | Verify students, handle class-level tickets |
+| **HOD** | Handle department tickets, verify staff/faculty, escalate to Director |
+| **Proctor** | Handle disciplinary tickets, verified by Director/Dean |
+| **Director** | Handle college tickets, verify HODs/Proctors, create roles |
+| **Dean** | Handle college-level tickets, verify HODs/Proctors, create roles |
+| **Transport Incharge** | Handle transport complaints directly |
+| **Hostel Warden** | Handle hostel complaints directly |
+| **Director Finance** | Handle finance-related tickets |
 | **Campus Admin** | Full access across all colleges |
 | **Moderator** | Review flagged content, approve suggestions |
-| **System Admin** | System configuration |
+| **System Admin** | System configuration, verify superior authorities, create roles |
 
 ## 🔄 Routing Logic
 
-```
-Transport Complaint → Transport Incharge → Campus Admin
-Hostel Complaint → Hostel Warden → Campus Admin
-Academic Complaint → Department HOD → College Director → Campus Admin
-Administrative → HOD/Admin → Campus Admin
-```
+### Direct Routing (Bypasses HODs)
+- **Transport Complaints** → Transport Incharge → Campus Admin
+- **Hostel Complaints** → Hostel Warden → Campus Admin
+- **Campus-Level Complaints** → System Admin
+
+### Hierarchical Routing
+- **Academic/Department Complaints** → Department HOD → College Director/Dean → Campus Admin
+- **Administrative** → HOD/Admin → Campus Admin
+
+### User Verification Flow
+- **Directors, Deans, Hostel Incharge, Transport Incharge, Director Finance** → Verified by System Admin
+- **HODs, Proctors** → Verified by Director/Dean of their college
+- **Staff, Faculty, Class Coordinators** → Verified by their respective HOD
+- **Students** → Verified by their Class Coordinator
 
 ## 🛠 Tech Stack
 
@@ -94,7 +109,7 @@ Administrative → HOD/Admin → Campus Admin
 ### 1. Clone and Install
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/YOUR_USERNAME/bbd-complaint-system.git
 cd bbd-complaint-system
 pnpm install
 ```
@@ -108,45 +123,56 @@ cp env.example .env
 # Edit .env with your values:
 # - DATABASE_URL
 # - JWT_ACCESS_SECRET, JWT_REFRESH_SECRET
-# - GEMINI_API_KEY
-# - S3 credentials
+# - GEMINI_API_KEY (required for AI features)
+# - AI_SERVICE_API_KEY (for AI service authentication)
+# - S3 credentials (or use Supabase storage)
 ```
 
-### 3. Start with Docker (Recommended)
+### 3. Hybrid Development (Recommended)
+
+Run infrastructure in Docker, apps locally for faster development:
 
 ```bash
-# Start all services
-docker-compose up -d
+# Start infrastructure (PostgreSQL, Redis, MinIO)
+docker-compose up -d postgres redis minio
 
-# View logs
-docker-compose logs -f
-```
-
-### 4. Or Run Locally
-
-```bash
-# Start PostgreSQL and Redis (if not using Docker)
-# ...
-
-# Generate Prisma client
-pnpm db:generate
-
-# Run migrations
-pnpm db:migrate
-
-# Seed database
+# Setup database
+pnpm db:migrate:prod
 pnpm db:seed
 
-# Start all services
-pnpm dev
+# Start all applications
+pnpm run dev
 ```
 
-### 5. Access the Application
-
-- **Frontend**: http://localhost:3000
-- **Backend API**: http://localhost:3001
-- **API Docs (Swagger)**: http://localhost:3001/api/docs
+**Access:**
+- **Frontend**: http://localhost:5173
+- **Backend API**: http://localhost:3001/api/v1
+- **API Docs**: http://localhost:3001/api/docs
 - **AI Service**: http://localhost:3002
+
+**Default Admin:**
+- Email: `admin@bbdu.edu.in`
+- Password: `Admin@123`
+
+### 4. Full Docker Deployment
+
+```bash
+# Build and start all services
+docker-compose build
+docker-compose up -d
+
+# Initialize database
+docker-compose exec backend npx prisma migrate deploy --schema=../../prisma/schema.prisma
+docker-compose exec backend npx prisma db seed --schema=../../prisma/schema.prisma
+```
+
+See [DOCKER_DEPLOYMENT.md](./DOCKER_DEPLOYMENT.md) for detailed instructions.
+
+### 5. Other Deployment Options
+
+- **Vercel + Supabase**: See [VERCEL_SUPABASE_DEPLOYMENT.md](./VERCEL_SUPABASE_DEPLOYMENT.md)
+- **Railway**: See [RAILWAY_DEPLOYMENT.md](./RAILWAY_DEPLOYMENT.md)
+- **Local Development**: See [START_DEV.md](./START_DEV.md)
 
 ## 📚 API Documentation
 
@@ -248,19 +274,30 @@ pnpm test:e2e
 
 ## 🚢 Deployment
 
-### Docker Compose (Production)
+### Deployment Guides
 
+- **[Docker Deployment](./DOCKER_DEPLOYMENT.md)**: Complete Docker setup guide
+- **[Docker Localhost](./DOCKER_LOCALHOST.md)**: Quick localhost deployment options
+- **[Vercel + Supabase](./VERCEL_SUPABASE_DEPLOYMENT.md)**: Serverless deployment guide
+- **[Railway Deployment](./RAILWAY_DEPLOYMENT.md)**: Railway platform deployment
+- **[Start Development](./START_DEV.md)**: Development environment setup
+
+### Quick Deployment Options
+
+**Docker Compose (Production)**
 ```bash
-# Build and start
-docker-compose up -d --build
-
-# Scale services
-docker-compose up -d --scale backend=3
+docker-compose build
+docker-compose up -d
 ```
 
-### Kubernetes
+**Vercel + Supabase (Serverless)**
+- Frontend: Vercel
+- Backend/AI: Vercel Serverless Functions
+- Database/Storage: Supabase
 
-Helm charts and Kubernetes manifests available in `infra/k8s/` (to be added).
+**Railway**
+- One-click deployment for all services
+- Automatic PostgreSQL and Redis provisioning
 
 ### CI/CD
 
@@ -269,6 +306,23 @@ GitHub Actions workflow automatically:
 2. Builds all services
 3. Builds and pushes Docker images
 4. Deploys to production (configurable)
+
+## 📚 Additional Documentation
+
+- **[DOCKER_DEPLOYMENT.md](./DOCKER_DEPLOYMENT.md)**: Complete Docker deployment guide
+- **[DOCKER_LOCALHOST.md](./DOCKER_LOCALHOST.md)**: Localhost deployment options
+- **[VERCEL_SUPABASE_DEPLOYMENT.md](./VERCEL_SUPABASE_DEPLOYMENT.md)**: Vercel + Supabase setup
+- **[RAILWAY_DEPLOYMENT.md](./RAILWAY_DEPLOYMENT.md)**: Railway deployment guide
+- **[START_DEV.md](./START_DEV.md)**: Development environment quick start
+
+## 🆕 Recent Features
+
+- ✅ **Hierarchical User Verification**: Multi-level verification system
+- ✅ **Role Management**: System Admin, Directors, and Deans can create new roles
+- ✅ **Direct Complaint Routing**: Transport/Hostel/Campus complaints bypass HODs
+- ✅ **AI Admin Assistant**: Chatbot for admins to get solution suggestions
+- ✅ **Text Enhancement**: AI-powered language improvement for complaints and replies
+- ✅ **Supabase Storage Support**: Alternative to S3 for file storage
 
 ## 📄 License
 

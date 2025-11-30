@@ -5,7 +5,7 @@ import { createError } from './error-handler';
  * Middleware to authenticate requests using an API key
  * The API key should be passed in the X-API-Key header
  */
-export function apiKeyAuth(req: Request, res: Response, next: NextFunction) {
+export function apiKeyAuth(req: Request, _res: Response, next: NextFunction) {
   // Skip auth for health check
   if (req.path === '/health') {
     return next();

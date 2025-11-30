@@ -85,6 +85,7 @@ export default function RegisterPage() {
   const onSubmit = async (data: FormData) => {
     clearError();
     try {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { confirmPassword, ...registerData } = data;
       await registerUser(registerData);
       toast({

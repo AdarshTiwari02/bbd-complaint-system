@@ -30,3 +30,5 @@ docker-compose exec -T postgres psql -U bbd_user -d bbd_complaints < "$BACKUP_FI
 
 echo "✅ Database restored successfully!"
 
+
+

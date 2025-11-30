@@ -8,13 +8,17 @@ WORKDIR /app
 
 # Copy root package files for monorepo
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY tsconfig.base.json ./
 COPY shared ./shared/
 
 # Copy frontend package files
 COPY apps/frontend/package.json ./apps/frontend/
 
-# Install dependencies
+# Install dependencies (including all workspace dependencies)
 RUN pnpm install --frozen-lockfile
+
+# Build shared package first (needed by other packages)
+RUN pnpm --filter @bbd/shared build
 
 # Build stage
 FROM base AS builder
@@ -28,9 +32,10 @@ ENV VITE_API_URL=$VITE_API_URL
 # Copy frontend source
 COPY apps/frontend ./apps/frontend
 
-# Build frontend (from root, using workspace filter)
+# Build frontend (using pnpm filter from root)
 WORKDIR /app
-RUN pnpm --filter @bbd/frontend build
+ENV PATH="/app/node_modules/.bin:$PATH"
+RUN cd apps/frontend && ../../node_modules/.bin/tsc && ../../node_modules/.bin/vite build
 
 # Production stage - Nginx
 FROM nginx:alpine AS production

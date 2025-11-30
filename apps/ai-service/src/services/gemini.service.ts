@@ -1,6 +1,5 @@
 import { GoogleGenerativeAI, GenerativeModel } from '@google/generative-ai';
 import { logger } from '../utils/logger';
-import { createError } from '../middleware/error-handler';
 
 interface ClassifyTicketParams {
   text: string;

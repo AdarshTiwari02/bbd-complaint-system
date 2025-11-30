@@ -10,7 +10,7 @@ export function errorHandler(
   err: AppError,
   req: Request,
   res: Response,
-  next: NextFunction
+  _next: NextFunction
 ) {
   logger.error(`Error: ${err.message}`, { stack: err.stack, path: req.path });
 

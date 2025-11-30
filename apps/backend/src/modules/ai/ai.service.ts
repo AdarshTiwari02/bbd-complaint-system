@@ -97,7 +97,7 @@ export class AiService {
 
   async predictPriority(text: string, title?: string, category?: TicketCategory): Promise<PriorityResponse> {
     try {
-      const response = await this.axiosInstance.post('/ai/predict-priority`, {
+      const response = await this.axiosInstance.post('/ai/predict-priority', {
         text,
         title,
         category,
@@ -105,13 +105,12 @@ export class AiService {
       return response.data.data;
     } catch (error) {
       this.handleError('predictPriority', error);
-      throw error;
     }
   }
 
   async moderateContent(text: string): Promise<ModerateResponse> {
     try {
-      const response = await this.axiosInstance.post('/ai/moderate`, {
+      const response = await this.axiosInstance.post('/ai/moderate', {
         text,
         checkSpam: true,
         checkProfanity: true,
@@ -120,13 +119,12 @@ export class AiService {
       return response.data.data;
     } catch (error) {
       this.handleError('moderateContent', error);
-      throw error;
     }
   }
 
   async summarizeTicket(ticketTitle: string, ticketDescription: string, messages?: Array<{ role: string; message: string }>): Promise<SummaryResponse> {
     try {
-      const response = await this.axiosInstance.post('/ai/summarize-ticket`, {
+      const response = await this.axiosInstance.post('/ai/summarize-ticket', {
         ticketTitle,
         ticketDescription,
         messages,
@@ -134,7 +132,6 @@ export class AiService {
       return response.data.data;
     } catch (error) {
       this.handleError('summarizeTicket', error);
-      throw error;
     }
   }
 
@@ -147,21 +144,19 @@ export class AiService {
     tone?: 'formal' | 'friendly' | 'empathetic';
   }): Promise<ReplyDraftResponse> {
     try {
-      const response = await this.axiosInstance.post('/ai/generate-reply`, params);
+      const response = await this.axiosInstance.post('/ai/generate-reply', params);
       return response.data.data;
     } catch (error) {
       this.handleError('generateReplyDraft', error);
-      throw error;
     }
   }
 
   async generateEmbedding(text: string): Promise<EmbeddingResponse> {
     try {
-      const response = await this.axiosInstance.post('/ai/embeddings`, { text });
+      const response = await this.axiosInstance.post('/ai/embeddings', { text });
       return response.data.data;
     } catch (error) {
       this.handleError('generateEmbedding', error);
-      throw error;
     }
   }
 
@@ -201,7 +196,7 @@ export class AiService {
       }
 
       // Call AI service to find similar
-      const response = await this.axiosInstance.post('/ai/similar-tickets`, {
+      const response = await this.axiosInstance.post('/ai/similar-tickets', {
         ticketId,
         limit,
         threshold,
@@ -216,14 +211,13 @@ export class AiService {
 
   async performOcr(fileUrl: string, mimeType: string): Promise<{ text: string; confidence: number }> {
     try {
-      const response = await this.axiosInstance.post('/ai/ocr`, {
+      const response = await this.axiosInstance.post('/ai/ocr', {
         fileUrl,
         mimeType,
       });
       return response.data.data;
     } catch (error) {
       this.handleError('performOcr', error);
-      throw error;
     }
   }
 
@@ -236,32 +230,30 @@ export class AiService {
     createdAt: Date;
   }>) {
     try {
-      const response = await this.axiosInstance.post('/ai/trends`, {
+      const response = await this.axiosInstance.post('/ai/trends', {
         tickets,
       });
       return response.data.data;
     } catch (error) {
       this.handleError('analyzeTrends', error);
-      throw error;
     }
   }
 
   async chatbotIntake(messages: Array<{ role: 'user' | 'assistant'; content: string }>, currentStep?: string) {
     try {
-      const response = await this.axiosInstance.post('/ai/chatbot-intake`, {
+      const response = await this.axiosInstance.post('/ai/chatbot-intake', {
         messages,
         currentStep,
       });
       return response.data.data;
     } catch (error) {
       this.handleError('chatbotIntake', error);
-      throw error;
     }
   }
 
   async enhanceText(text: string, title?: string, type: 'complaint' | 'suggestion' = 'complaint') {
     try {
-      const response = await this.axiosInstance.post('/ai/enhance-text`, {
+      const response = await this.axiosInstance.post('/ai/enhance-text', {
         text,
         title,
         type,
@@ -269,11 +261,10 @@ export class AiService {
       return response.data.data;
     } catch (error) {
       this.handleError('enhanceText', error);
-      throw error;
     }
   }
 
-  private handleError(method: string, error: unknown) {
+  private handleError(method: string, error: unknown): never {
     if (error instanceof AxiosError) {
       this.logger.error(
         `AI Service error in ${method}: ${error.message}`,

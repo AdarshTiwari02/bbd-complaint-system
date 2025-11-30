@@ -84,9 +84,10 @@ export const useAuthStore = create<AuthState>()(
           api.defaults.headers.common['Authorization'] = `Bearer ${data.tokens.accessToken}`;
 
           return {};
-        } catch (error: any) {
+        } catch (error: unknown) {
+          const errorMessage = (error as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error?.message || 'Login failed';
           set({
-            error: error.response?.data?.error?.message || 'Login failed',
+            error: errorMessage,
             isLoading: false,
           });
           throw error;
@@ -98,9 +99,10 @@ export const useAuthStore = create<AuthState>()(
         try {
           await api.post('/auth/register', data);
           set({ isLoading: false });
-        } catch (error: any) {
+        } catch (error: unknown) {
+          const errorMessage = (error as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error?.message || 'Registration failed';
           set({
-            error: error.response?.data?.error?.message || 'Registration failed',
+            error: errorMessage,
             isLoading: false,
           });
           throw error;
