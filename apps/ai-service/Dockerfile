@@ -22,7 +22,8 @@ FROM base AS builder
 # Copy AI service source
 COPY apps/ai-service ./apps/ai-service
 
-# Build AI service
+# Build AI service (from root)
+WORKDIR /app
 RUN pnpm --filter @bbd/ai-service build
 
 # Production stage

@@ -28,7 +28,8 @@ ENV VITE_API_URL=$VITE_API_URL
 # Copy frontend source
 COPY apps/frontend ./apps/frontend
 
-# Build frontend
+# Build frontend (from root, using workspace filter)
+WORKDIR /app
 RUN pnpm --filter @bbd/frontend build
 
 # Production stage - Nginx

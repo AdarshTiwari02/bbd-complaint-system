@@ -23,10 +23,11 @@ FROM base AS builder
 # Copy backend source
 COPY apps/backend ./apps/backend
 
-# Generate Prisma client
-RUN pnpm --filter @bbd/backend prisma generate --schema=../../prisma/schema.prisma
+# Generate Prisma client (from root)
+WORKDIR /app
+RUN pnpm --filter @bbd/backend exec prisma generate --schema=../../prisma/schema.prisma
 
-# Build backend
+# Build backend (from root)
 RUN pnpm --filter @bbd/backend build
 
 # Production stage
