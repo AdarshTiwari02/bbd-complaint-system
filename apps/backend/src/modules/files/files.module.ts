@@ -21,7 +21,8 @@ import { SupabaseStorageService } from './supabase-storage.service';
       inject: [ConfigService],
     },
     S3Service,
-    SupabaseStorageService,
+    // SupabaseStorageService is only instantiated in the factory above when needed
+    // Don't add it to providers to avoid instantiation when using S3
   ],
   exports: [FilesService],
 })
